@@ -33,18 +33,20 @@ class Model:
 
     while self.t < self.T:
       progress.update_progress(self.t/self.T*100)
+      progress.show()
       state = dict(zip(self.stateNames, stateValues))
       w_array = [w(state, self) for w in self.stateW]
       W = sum(w_array)
+      # print(w_array, W)
 
-      if W <= 0:
+      if W == 0:
         self.t = self.T
         self.timeStamp = np.insert(self.timeStamp, 0, self.t)
         self.stateHistoricalValues = np.vstack((self.stateHistoricalValues, stateValues))
         break
 
       dt = -np.log(np.random.random_sample()) / W
-      print(dt)
+      # print(dt)
       self.timeStamp = np.insert(self.timeStamp, 0, self.t)
       self.t += dt
       # print(self.t, dt)
@@ -63,8 +65,11 @@ class Model:
         else:
             idx += 1
             sum_a += w
-      
+    
+    progress.update_progress(self.t/self.T*100)
+    progress.show()
     self.t = 0
+
 
   def plot(self):
     for i in range(0, len(self.stateNames)):

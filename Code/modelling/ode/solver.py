@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from modelling.utilities import ProgressBar
 
 class Solver:
     def __init__(self, function, initial=np.array([0,0])):
@@ -109,11 +110,12 @@ class Solver:
         return np.vstack([time, result])
 
     def __rk45_vec(self, start, end, error=0.0001, h=0.5, limit=100):
+        progress = ProgressBar()
         t = self._initial[0]
+
         result = np.zeros((len(self._functions),1))
         result[:, 0] = self._initial[1:].T
         # print(result)
-        H = h
     
         time = np.array([t])
 
@@ -124,7 +126,9 @@ class Solver:
             result = np.concatenate([result, y5], axis=1)
             # print(result)
             time = np.append(time, [t])
-            print(t)
+            # print(t)
+            progress.step(h/(end-start)*100)
+            progress.show()
         
         h = -h
         t = self._initial[0]
@@ -133,6 +137,9 @@ class Solver:
             t += h
             result = np.append([y5], result)
             time = np.append([t], time)
+            progress.step(-h/(end-start)*100)
+            progress.show()
+
 
         self._solutions = result
         self._time = time
@@ -166,7 +173,7 @@ class Solver:
 
         return np.stack([time, result])
 
-    def __rk45_step_vec(self, limit, h, ti, yi, error, error_factor=10):
+    def __rk45_step_vec(self, limit, h, ti, yi, max_error, error_factor=2):
         i = 0
         k_values = np.zeros((len(self._functions), 6))
         while (i < limit):
@@ -188,10 +195,13 @@ class Solver:
             y5 = yi + 16/135*k_values[:,0] + 6656/12825*k_values[:,2] + 28561/56430*k_values[:,3] - 9/50*k_values[:,4] + 2/55*k_values[:,5]
             y4 = yi + 25/216*k_values[:,0] + 1408/2565*k_values[:,2] + 2197/4104*k_values[:,3] - 1/5*k_values[:,4]
 
-            if (np.amax(np.abs(y5-y4)) > error):
-                h /= 2
-            elif (np.amax(np.abs(y5-y4)) * error_factor < error):
-                h *= 2
+            error = np.amax(np.abs(y5-y4))
+            # print(error, max_error)
+            if (error > max_error):
+                h /= error_factor 
+            elif (error < max_error/error_factor):
+                h *= error_factor
+                break
             else:
                 break
         return h, np.reshape(y5, (len(self._functions),1))
@@ -237,4 +247,8 @@ class Solver:
         
     def show(self):
         self._ax.legend()
+        plt.title("Populations vs Time")
+        plt.legend()
+        plt.xlabel("Time")
+        plt.ylabel("Population")
         plt.show()
